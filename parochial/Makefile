@@ -4,7 +4,8 @@ COSMOS=/opt/cosmos/x86_64 # FIXME: poner en un lugar mejor
 BUILDTIME_IMG = 'buildtime:latest'
 
 cosmocc.zip:
-	wget https://cosmo.zip/pub/cosmocc/$@
+	wget -qO $@ https://cosmo.zip/pub/cosmocc/cosmocc-3.9.2.zip
+	# TODO: chequear hash
 
 ncurses-6.4.tar.gz:
 	wget https://ftp.gnu.org/gnu/ncurses/$@
@@ -84,5 +85,26 @@ install_ncurses: build_ncurses
 		-e TMPDIR="/ape" \
 		${BUILDTIME_IMG} \
 			/cosmocc/bin/ape-x86_64.elf make INSTALL=install install
+
+nethack.tgz:
+	wget -O $@ "https://www.nethack.org/download/3.6.7/nethack-367-src.tgz"
+
+build_nethack: nethack.tgz
+	rm -rf NetHack-3.6.7
+	tar xzf $<
+	pushd "NetHack-3.6.7/sys/unix";	sh setup.sh hints/linux; popd # minimal?
+	docker run \
+		--user=$(shell id --user) \
+		--rm \
+		-v ./NetHack-3.6.7:/nethack \
+		-w /nethack \
+		-v ./zip:/zip \
+		-v ./cosmocc:/cosmocc \
+		-v ./opt:/opt \
+		-v ./ape:/ape \
+		-e TMPDIR="/ape" \
+		${BUILDTIME_IMG} \
+			/cosmocc/bin/ape-x86_64.elf make -j4 # FIXME: es correcto el uso de ape?
+
 
 .PHONY = help
