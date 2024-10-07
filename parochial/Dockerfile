@@ -4,10 +4,7 @@ FROM archlinux AS buildtime
 RUN --mount=type=cache,target=/var/cache/pacman/pkg,sharing=locked \
     pacman -Sy --noconfirm \
         base-devel \
-        wget \
-        unzip \
-        qemu-full \
-        git
+        qemu-base
 
 # environment variables
 ENV COSMO="/cosmocc"
@@ -24,6 +21,6 @@ ENV OBJCOPY="x86_64-unknown-cosmo-objcopy"
 ENV OBJDUMP="x86_64-unknown-cosmo-objdump"
 ENV ADDR2LINE="x86_64-unknown-cosmo-addr2line"
 ENV PKG_CONFIG="pkg-config --with-path=${COSMOS}/lib/pkgconfig"
-ENV COSMOPOLITAN_DISABLE_ZIPOS=1
 
+# ENV COSMOPOLITAN_DISABLE_ZIPOS=1
 # RUN ln -s /cosmocc/bin/ape-x86_64.elf /usr/bin/ape
