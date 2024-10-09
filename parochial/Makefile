@@ -85,14 +85,26 @@ install_ncurses: build_ncurses
 		-e TMPDIR="/ape" \
 		${BUILDTIME_IMG} \
 			/cosmocc/bin/ape-x86_64.elf make INSTALL=install install
+	touch $@
 
 nethack.tgz:
 	wget -O $@ "https://www.nethack.org/download/3.6.7/nethack-367-src.tgz"
 
-build_nethack: nethack.tgz
+build_nethack: nethack.tgz install_ncurses
 	rm -rf NetHack-3.6.7
 	tar xzf $<
-	pushd "NetHack-3.6.7/sys/unix";	sh setup.sh hints/linux; popd # minimal?
+	docker run \
+		--user=$(shell id --user):$(shell id --group) \
+		--rm \
+		-v ./NetHack-3.6.7:/nethack \
+		-w /nethack \
+		-v ./zip:/zip \
+		-v ./cosmocc:/cosmocc \
+		-v ./opt:/opt \
+		-v ./ape:/ape \
+		-e TMPDIR="/ape" \
+		${BUILDTIME_IMG} \
+			sh sys/unix/setup.sh sys/unix/hints/linux
 	docker run \
 		--user=$(shell id --user):$(shell id --group) \
 		--rm \
