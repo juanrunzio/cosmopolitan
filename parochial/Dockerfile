@@ -22,7 +22,8 @@ ENV OBJDUMP="x86_64-unknown-cosmo-objdump"
 ENV ADDR2LINE="x86_64-unknown-cosmo-addr2line"
 ENV PKG_CONFIG="pkg-config --with-path=${COSMOS}/lib/pkgconfig"
 ENV COSMOPOLITAN_DISABLE_ZIPOS=1
-# RUN ln -s /cosmocc/bin/ape-x86_64.elf /usr/bin/ape
 
 RUN rm /usr/bin/make \
  && ln -s /cosmocc/bin/make /usr/bin/make
+
+RUN ln -s /cosmocc/bin/ape-x86_64.elf /usr/bin/ape
