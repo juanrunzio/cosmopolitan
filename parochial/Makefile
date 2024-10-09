@@ -69,8 +69,31 @@ nethack/: nethack.tar.gz
 	rm -rf nethack
 	tar xzf $<
 	mv NetHack-3.6.7 nethack
+	sed -e 's|^/\* \(#define LINUX\) \*/|\1|' \
+		-e 's|^/\* \(#define TIMED_DELAY\) \*/|\1|' \
+		-i nethack/include/unixconf.h
+	@# $(GAME) tiene que escapearse con doble $$
 	sed -e 's|CFLAGS=-g -O -I../include -DNOTPARMDECL|CFLAGS+=-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__ -I../include -I${COSMOS}/include/ncurses -DNOTPARMDECL|' \
+		-e '/^HACKDIR/ s|/games/lib/\$$(GAME)dir|/var/games/nethack/|' \
+		-e '/^SHELLDIR/ s|/games|/usr/bin|' \
+		-e '/^VARDIRPERM/ s|0755|0775|' \
+		-e '/^VARFILEPERM/ s|0600|0664|' \
+		-e '/^GAMEPERM/ s|0755|02755|' \
+		-e '/-DTIMED_DELAY/d' \
+		-e 's|\(DSYSCF_FILE=\)\\"[^"]*\\"|\1\\"/var/games/nethack/sysconf\\"|' \
+		-e 's/LFLAGS=-rdynamic/LFLAGS=$$(LDFLAGS) -rdynamic/' \
+		-e 's|\(DHACKDIR=\)\\"[^"]*\\"|\1\\"/var/games/nethack/\\"|' \
 		-i nethack/sys/unix/hints/linux
+	sed '/^#define __warn_unused_result__/ s,/\*empty\*/,__unused__,' \
+		-i nethack/include/tradstdc.h
+	sed -e 's|^#GAMEUID.*|GAMEUID = root|' \
+		-e 's|^#GAMEGRP.*|GAMEGRP = games|' \
+		-e '/^FILEPERM\s*=/ s|0644|0664|' \
+		-e '/^DIRPERM\s*=/ s|0755|0775|' \
+		-i nethack/sys/unix/Makefile.top
+	#sed -e "/^MANDIR\s*=/s|/usr/man/man6|$$pkgdir/usr/share/man/man6|" \
+	#	-i sys/unix/Makefile.doc
+
 clean::
 	rm -rf nethack/
 ###
@@ -152,15 +175,31 @@ clean::
 ###
 
 ###
-.build_nethack: .install_ncurses nethack/
+.setup_nethack: .install_ncurses nethack/
 	$(DOCKER_RUN) \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			sh sys/unix/setup.sh sys/unix/hints/linux
+clean::
+	rm -f .setup_nethack
+###
+
+###
+.build_nethack: .setup_nethack
 	$(DOCKER_RUN) \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j8
 clean::
 	rm -f .build_nethack
+###
+
+###
+.install_nethack: .build_nethack
+	$(DOCKER_RUN) \
+		-w /nethack \
+		${BUILDTIME_IMG} \
+			ape make -j1 PREFIX=/opt install # -j mayor que 1 falla
+clean::
+	rm -f .install_nethack
 ###
