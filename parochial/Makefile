@@ -32,7 +32,7 @@ configure_ncurses: ncurses-6.4.tar.gz ncurses-minimal.patch buildtime_img cosmoc
 	rm -rf ape
 	mkdir ape
 	docker run \
-		--user=$(shell id --user) \
+		--user=$(shell id --user):$(shell id --group) \
 		--rm \
 		-v ./ncurses-6.4:/ncurses \
 	   	-w /ncurses \
@@ -59,7 +59,7 @@ configure_ncurses: ncurses-6.4.tar.gz ncurses-minimal.patch buildtime_img cosmoc
 
 build_ncurses: configure_ncurses
 	docker run \
-		--user=$(shell id --user) \
+		--user=$(shell id --user):$(shell id --group) \
 		--rm \
 		-v ./ncurses-6.4:/ncurses \
 	   	-w /ncurses \
@@ -74,7 +74,7 @@ build_ncurses: configure_ncurses
 
 install_ncurses: build_ncurses
 	docker run \
-		--user=$(shell id --user) \
+		--user=$(shell id --user):$(shell id --group) \
 		--rm \
 		-v ./ncurses-6.4:/ncurses \
 	   	-w /ncurses \
@@ -94,7 +94,7 @@ build_nethack: nethack.tgz
 	tar xzf $<
 	pushd "NetHack-3.6.7/sys/unix";	sh setup.sh hints/linux; popd # minimal?
 	docker run \
-		--user=$(shell id --user) \
+		--user=$(shell id --user):$(shell id --group) \
 		--rm \
 		-v ./NetHack-3.6.7:/nethack \
 		-w /nethack \
