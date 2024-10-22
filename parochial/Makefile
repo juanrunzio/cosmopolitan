@@ -191,6 +191,9 @@ clean::
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j8
+	ln -s nethack/src/nethack nh.zip
+	pushd zip; zip ../nh.zip -r usr/share/terminfo
+	rm -f nh.zip
 clean::
 	rm -f .build_nethack
 ###
