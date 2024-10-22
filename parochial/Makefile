@@ -122,7 +122,6 @@ DOCKER_RUN = docker run \
 				-v ./zip:/zip \
 				-v ./cosmocc:/cosmocc \
 				-v ./opt:/opt \
-				-v ./nethack:/nethack \
 				-v /tmp:/tmp \
 				-e TMPDIR=/tmp
 
@@ -177,6 +176,7 @@ clean::
 ###
 .setup_nethack: .install_ncurses nethack/
 	$(DOCKER_RUN) \
+		-v ./nethack:/nethack \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			sh sys/unix/setup.sh sys/unix/hints/linux
@@ -187,6 +187,7 @@ clean::
 ###
 .build_nethack: .setup_nethack
 	$(DOCKER_RUN) \
+		-v ./nethack:/nethack \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j8
@@ -197,6 +198,7 @@ clean::
 ###
 .install_nethack: .build_nethack
 	$(DOCKER_RUN) \
+		-v ./nethack:/nethack \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j1 PREFIX=/opt install # -j mayor que 1 falla
