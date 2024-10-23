@@ -81,7 +81,7 @@ nethack/: nethack.tar.gz
 		-e '/^VARFILEPERM/ s|0600|0664|' \
 		-e '/^GAMEPERM/ s|0755|02755|' \
 		-e '/-DTIMED_DELAY/d' \
-		-e 's|\(DSYSCF_FILE=\)\\"[^"]*\\"|\1\\"/var/games/nethack/sysconf\\"|' \
+		-e 's|\(DSYSCF_FILE=\)\\"[^"]*\\"|\1\\"$(shell pwd)/opt/tmp/var/nethack/sysconf\\"|' \
 		-e 's/LFLAGS=-rdynamic/LFLAGS=$$(LDFLAGS) -rdynamic/' \
 		-e 's|\(DHACKDIR=\)\\"[^"]*\\"|\1\\"/tmp/var/nethack/\\"|' \
 		-e '/^VARDIR *=/ s|=[ ]*.*|= /tmp/var/nethack|' \
@@ -208,7 +208,7 @@ clean::
 		${BUILDTIME_IMG} \
 			ape make -j1 PREFIX=/opt install # -j mayor que 1 falla
 
-	ln -s /var/games/nethack/nhdat /tmp/var/nethack/nhdat
+	ln -s $(shell pwd)/opt/tmp/var/nethack/nhdat /tmp/var/nethack/nhdat
 clean::
 	rm -f .install_nethack
 ###
