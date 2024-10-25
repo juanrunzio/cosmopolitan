@@ -64,7 +64,7 @@ deepclean::
 	rm -f nethack.tar.gz
 ###
 create-dir:
-	mkdir -p zip/tmp/var/nethack
+	mkdir -p zip/var/nethack
 ###
 nethack/: nethack.tar.gz
 	rm -rf nethack
@@ -77,12 +77,12 @@ nethack/: nethack.tar.gz
 	sed -e 's|CFLAGS=-g -O -I../include -DNOTPARMDECL|CFLAGS+=-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__ -I../include -I${COSMOS}/include/ncurses -DNOTPARMDECL|' \
 		-e '/^HACKDIR/ s|/games/lib/\$$(GAME)dir|/games/var/nethack|' \
 		-e '/^SHELLDIR/ s|/games|/usr/bin|' \
-		-e '/^HACKDIR/a SYSCONFDIR=/zip/tmp/var/nethack'\
+		-e '/^HACKDIR/a SYSCONFDIR=/zip/var/nethack'\
 		-e '/^VARDIRPERM/ s|0755|0775|' \
 		-e '/^VARFILEPERM/ s|0600|0664|' \
 		-e '/^GAMEPERM/ s|0755|02755|' \
 		-e '/-DTIMED_DELAY/d' \
-		-e 's|\(DSYSCF_FILE=\)\\"[^"]*\\"|\1\\"/zip/tmp/var/nethack/sysconf\\"|' \
+		-e 's|\(DSYSCF_FILE=\)\\"[^"]*\\"|\1\\"/zip/var/nethack/sysconf\\"|' \
 		-e 's/LFLAGS=-rdynamic/LFLAGS=$$(LDFLAGS) -rdynamic/' \
 		-e 's|\(DHACKDIR=\)\\"[^"]*\\"|\1\\"nethack/games/var/nethack/\\"|' \
 		-e '/^VARDIR *=/ s|=[ ]*.*|= games/var/nethack|' \
@@ -178,7 +178,7 @@ clean::
 ###
 
 ###
-.setup_nethack: .install_ncurses nethack/
+.setup_nethack: .install_ncurses nethack/ create-dir
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
 		-w /nethack \
@@ -212,7 +212,7 @@ clean::
 
 	ln -s $(shell pwd)/opt/games/var/nethack/nhdat nethack/games/var/nethack/nhdat
 	ln -s nethack/src/nethack nh.zip
-	pushd zip; zip ../nh.zip tmp/var/nethack/sysconf
+	pushd zip; zip ../nh.zip var/nethack/sysconf
 	rm -f nh.zip
 clean::
 	rm -f .install_nethack
