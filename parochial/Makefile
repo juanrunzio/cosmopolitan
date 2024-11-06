@@ -70,6 +70,7 @@ nethack/: nethack.tar.gz
 	rm -rf nethack
 	tar xzf $<
 	mv NetHack-3.6.7 nethack
+	cp -r nethack nethack2
 	sed -e 's|^/\* \(#define LINUX\) \*/|\1|' \
 		-e 's|^/\* \(#define TIMED_DELAY\) \*/|\1|' \
 		-i nethack/include/unixconf.h
@@ -97,9 +98,11 @@ nethack/: nethack.tar.gz
 		-i nethack/sys/unix/Makefile.top
 	#sed -e "/^MANDIR\s*=/s|/usr/man/man6|$$pkgdir/usr/share/man/man6|" \
 	#	-i sys/unix/Makefile.doc
+	diff -r nethack nethack2 > nethack.patch || true
 
 clean::
 	rm -rf nethack/
+	rm -rf nethack2/
 ###
 
 ###
@@ -184,6 +187,7 @@ clean::
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			sh sys/unix/setup.sh sys/unix/hints/linux
+	touch $@
 clean::
 	rm -f .setup_nethack
 ###
@@ -198,6 +202,7 @@ clean::
 	ln -s nethack/src/nethack nh.zip
 	pushd zip; zip ../nh.zip -r usr/share/terminfo
 	rm -f nh.zip
+	touch $@
 clean::
 	rm -f .build_nethack
 ###
@@ -214,6 +219,7 @@ clean::
 	ln -s nethack/src/nethack nh.zip
 	pushd zip; zip ../nh.zip var/nethack/sysconf
 	rm -f nh.zip
+	touch $@
 clean::
 	rm -f .install_nethack
 	###
