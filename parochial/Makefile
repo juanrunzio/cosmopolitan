@@ -98,7 +98,7 @@ nethack/: nethack.tar.gz
 		-i nethack/sys/unix/Makefile.top
 	#sed -e "/^MANDIR\s*=/s|/usr/man/man6|$$pkgdir/usr/share/man/man6|" \
 	#	-i sys/unix/Makefile.doc
-	diff -r nethack nethack2 > nethack.patch || true
+	diff -ruN nethack2 nethack > nethack.patch || true
 
 clean::
 	rm -rf nethack/
