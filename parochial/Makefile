@@ -63,17 +63,21 @@ nethack.tar.gz:
 deepclean::
 	rm -f nethack.tar.gz
 ###
+
+###
 create-dir:
 	mkdir -p zip/var/nethack
 ###
-nethack/: nethack.tar.gz
-	rm -rf nethack
+
+###
+nethack.patch nethack_unpatched: nethack.tar.gz
+	rm -rf nethack_patched nethack_unpatched
 	tar xzf $<
-	mv NetHack-3.6.7 nethack
-	cp -r nethack nethack2
+	mv NetHack-3.6.7 nethack_patched
+	cp -r nethack_patched nethack_unpatched
 	sed -e 's|^/\* \(#define LINUX\) \*/|\1|' \
 		-e 's|^/\* \(#define TIMED_DELAY\) \*/|\1|' \
-		-i nethack/include/unixconf.h
+		-i nethack_patched/include/unixconf.h
 	@# $(GAME) tiene que escapearse con doble $$
 	sed -e 's|CFLAGS=-g -O -I../include -DNOTPARMDECL|CFLAGS+=-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__ -I../include -I${COSMOS}/include/ncurses -DNOTPARMDECL|' \
 		-e '/^HACKDIR/ s|/games/lib/\$$(GAME)dir|/games/var/nethack|' \
@@ -88,21 +92,30 @@ nethack/: nethack.tar.gz
 		-e 's|\(DHACKDIR=\)\\"[^"]*\\"|\1\\"nethack/games/var/nethack/\\"|' \
 		-e '/^VARDIR *=/ s|=[ ]*.*|= games/var/nethack|' \
 		-e '/^POSTINSTALL/ s|INSTDIR|SYSCONFDIR|g'\
-		-i nethack/sys/unix/hints/linux
+		-i nethack_patched/sys/unix/hints/linux
 	sed '/^#define __warn_unused_result__/ s,/\*empty\*/,__unused__,' \
-		-i nethack/include/tradstdc.h
+		-i nethack_patched/include/tradstdc.h
 	sed -e 's|^#GAMEUID.*|GAMEUID = root|' \
 		-e 's|^#GAMEGRP.*|GAMEGRP = games|' \
 		-e '/^FILEPERM\s*=/ s|0644|0664|' \
 		-e '/^DIRPERM\s*=/ s|0755|0775|' \
-		-i nethack/sys/unix/Makefile.top
+		-i nethack_patched/sys/unix/Makefile.top
 	#sed -e "/^MANDIR\s*=/s|/usr/man/man6|$$pkgdir/usr/share/man/man6|" \
 	#	-i sys/unix/Makefile.doc
-	diff -ruN nethack2 nethack > nethack.patch || true
-
+	diff -ruN nethack_unpatched nethack_patched > $@ || true # "|| true" es necesario porque diff devuelve rc!=0 cuando hay diferencias
+	rm -rf nethack_patched
 clean::
-	rm -rf nethack/
-	rm -rf nethack2/
+	rm -f nethack.patch
+	rm -rf nethack_unpatched
+###
+
+###
+nethack/: nethack.patch nethack_unpatched
+	rm -rf $@
+	patch -p0 < $<
+	mv nethack_unpatched nethack
+clean::
+	rm -rf nethack
 ###
 
 ###
