@@ -108,9 +108,10 @@ clean::
 ###
 
 ###
-nethack/: nethack.patch nethack_unpatched
+nethack/: nethack.patch nethack_unpatched perm.patch
 	rm -rf $@
 	patch -p0 < $<
+	patch -p0 < perm.patch
 	cp -r nethack_unpatched nethack
 clean::
 	rm -rf nethack
