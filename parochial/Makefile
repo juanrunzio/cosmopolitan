@@ -111,7 +111,7 @@ clean::
 nethack/: nethack.patch nethack_unpatched
 	rm -rf $@
 	patch -p0 < $<
-	mv nethack_unpatched nethack
+	cp -r nethack_unpatched nethack
 clean::
 	rm -rf nethack
 ###
