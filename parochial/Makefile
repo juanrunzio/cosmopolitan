@@ -65,11 +65,6 @@ deepclean::
 ###
 
 ###
-create-dir:
-	mkdir -p zip/var/nethack
-###
-
-###
 nethack.patch nethack_unpatched: nethack.tar.gz
 	rm -rf nethack_patched nethack_unpatched
 	tar xzf $<
@@ -197,7 +192,7 @@ clean::
 ###
 
 ###
-.setup_nethack: .install_ncurses nethack/ create-dir
+.setup_nethack: .install_ncurses nethack/
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
 		-w /nethack \
@@ -225,6 +220,7 @@ clean::
 
 ###
 .install_nethack: .build_nethack
+	mkdir -p zip/var/nethack
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
 		-w /nethack \
