@@ -101,6 +101,8 @@ nethack.patch nethack_unpatched: nethack.tar.gz
 		-e '/^FILEPERM\s*=/ s|0644|0664|' \
 		-e '/^DIRPERM\s*=/ s|0755|0775|' \
 		-i nethack_patched/sys/unix/Makefile.top
+	sed -e '/^#define DLBFILE/ s|nhdat|/zip/nhdat|' \
+		-i nethack_patched/include/dlb.h
 	#sed -e "/^MANDIR\s*=/s|/usr/man/man6|$$pkgdir/usr/share/man/man6|" \
 	#	-i sys/unix/Makefile.doc
 	diff -ruN nethack_unpatched nethack_patched > $@ || true # "|| true" es necesario porque diff devuelve rc!=0 cuando hay diferencias
@@ -229,11 +231,12 @@ clean::
 		${BUILDTIME_IMG} \
 			ape make -j1 PREFIX=/opt install # -j mayor que 1 falla
 
-#ln -s $(shell pwd)/opt/games/var/nethack/nhdat nethack/games/var/nethack/nhdat
-	ln -s nethack/src/nethack nh.zip
+	ln -s opt/playground/nethack/nethack nh.zip
+	zip nh.zip opt/playground/nethack/nhdat -j
 	pushd zip; zip ../nh.zip var/nethack/sysconf
 	rm -f nh.zip
 	touch $@
 clean::
+	rm -f nh.zip
 	rm -f .install_nethack
 	###
