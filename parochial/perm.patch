@@ -1,4 +1,4 @@
---- nethack_unpatched/src/files.c	2024-11-21 20:34:21.595301085 -0300
+--- nethack/src/files.c	2024-11-21 20:34:21.595301085 -0300
 +++ ../../NetHack/src/files.c	2024-11-21 20:35:45.300398773 -0300
 @@ -1733,7 +1733,11 @@
  #endif
@@ -6,7 +6,7 @@
  #ifdef USE_FCNTL
 -    lockfd = open(filename, O_RDWR);
 +    if (strstr(filename, HLOCK)) {
-+        lockfd = open(filename, O_RDWR | O_CREAT);
++        lockfd = open(filename, O_RDWR | O_CREAT, 0666);
 +    } else {
 +        lockfd = open(filename, O_RDWR);
 +    }

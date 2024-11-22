@@ -65,7 +65,7 @@ deepclean::
 ###
 
 ###
-nethack.patch nethack_unpatched: nethack.tar.gz
+nethack.patch: nethack.tar.gz
 	rm -rf nethack_patched nethack_unpatched
 	tar xzf $<
 	mv NetHack-3.6.7 nethack_patched
@@ -104,17 +104,19 @@ nethack.patch nethack_unpatched: nethack.tar.gz
 	rm -rf nethack_patched
 clean::
 	rm -f nethack.patch
-	rm -rf nethack_unpatched
+	rm -rf nethack_patched nethack_unpatched
 ###
 
 ###
-nethack/: nethack.patch nethack_unpatched perm.patch
-	rm -rf $@
-	patch -p0 < $<
-	patch -p0 < perm.patch
-	cp -r nethack_unpatched nethack
-clean::
+.patched_nethack: nethack.patch perm.patch nethack.tar.gz
 	rm -rf nethack
+	tar xzf nethack.tar.gz
+	mv NetHack-3.6.7 nethack
+	patch -p0 < nethack.patch
+	patch -p0 < perm.patch
+	touch .patched_nethack
+clean::
+	rm -rf nethack .patched_nethack
 ###
 
 ###
@@ -193,7 +195,7 @@ clean::
 ###
 
 ###
-.setup_nethack: .install_ncurses nethack/
+.setup_nethack: .install_ncurses .patched_nethack
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
 		-w /nethack \
