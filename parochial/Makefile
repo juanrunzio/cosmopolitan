@@ -65,56 +65,30 @@ deepclean::
 ###
 
 ###
-nethack.patch: nethack.tar.gz
-	rm -rf nethack_patched nethack_unpatched
+UNPATCHED_DIR = nethack
+NH_CFG_PATCH = nethack-config.patch
+
+${NH_CFG_PATCH}: nethack.tar.gz sediento.sh
+	rm -rf nethack_patched ${UNPATCHED_DIR}
 	tar xzf $<
 	mv NetHack-3.6.7 nethack_patched
-	cp -r nethack_patched nethack_unpatched
-	sed -e 's|^/\* \(#define LINUX\) \*/|\1|' \
-		-e 's|^/\* \(#define TIMED_DELAY\) \*/|\1|' \
-		-i nethack_patched/include/unixconf.h
-	@# $(GAME) tiene que escapearse con doble $$
-	sed -e 's|CFLAGS=-g -O -I../include -DNOTPARMDECL|CFLAGS+=-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__ -I../include -I${COSMOS}/include/ncurses -DNOTPARMDECL|' \
-		-e '/^HACKDIR/ s|/games/lib/\$$(GAME)dir|/playground/nethack|' \
-		-e '/^SHELLDIR/ s|/games|/usr/bin|' \
-		-e '/^HACKDIR/a SYSCONFDIR=/zip/var/nethack'\
-		-e '/^VARDIRPERM/ s|0755|0775|' \
-		-e '/^VARFILEPERM/ s|0600|0664|' \
-		-e '/^GAMEPERM/ s|0755|02755|' \
-		-e '/-DTIMED_DELAY/d' \
-		-e 's|\(DSYSCF_FILE=\)\\"[^"]*\\"|\1\\"/zip/var/nethack/sysconf\\"|' \
-		-e 's/LFLAGS=-rdynamic/LFLAGS=$$(LDFLAGS) -rdynamic/' \
-		-e 's|\(DHACKDIR=\)\\"[^"]*\\"|\1\\"opt/playground/nethack/\\"|' \
-		-e '/^VARDIR *=/ s|=[ ]*.*|= /opt/variables/|' \
-		-e '/CFLAGS+=-DHACKDIR/a\CFLAGS+=-DVAR_PLAYGROUND=\\\"$(shell pwd)/opt/variables/\\\"' \
-		-e '/^POSTINSTALL/ s|INSTDIR|SYSCONFDIR|g'\
-		-i nethack_patched/sys/unix/hints/linux
-	sed '/^#define __warn_unused_result__/ s,/\*empty\*/,__unused__,' \
-		-i nethack_patched/include/tradstdc.h
-	sed -e 's|^#GAMEUID.*|GAMEUID = root|' \
-		-e 's|^#GAMEGRP.*|GAMEGRP = games|' \
-		-e '/^FILEPERM\s*=/ s|0644|0664|' \
-		-e '/^DIRPERM\s*=/ s|0755|0775|' \
-		-i nethack_patched/sys/unix/Makefile.top
-	sed -e '/^#define DLBFILE/ s|nhdat|/zip/nhdat|' \
-		-i nethack_patched/include/dlb.h
-	#sed -e "/^MANDIR\s*=/s|/usr/man/man6|$$pkgdir/usr/share/man/man6|" \
-	#	-i sys/unix/Makefile.doc
-	diff -ruN nethack_unpatched nethack_patched > $@ || true # "|| true" es necesario porque diff devuelve rc!=0 cuando hay diferencias
-	rm -rf nethack_patched
+	cp -r nethack_patched ${UNPATCHED_DIR}
+	sh sediento.sh nethack_patched ${COSMOS}
+	diff -ruN ${UNPATCHED_DIR} nethack_patched > $@ || true # "|| true" es necesario porque diff devuelve rc!=0 cuando hay diferencias
+	rm -rf nethack_patched ${UNPATCHED_DIR}
 clean::
-	rm -f nethack.patch
-	rm -rf nethack_patched nethack_unpatched
+	rm -f ${NH_CFG_PATCH}
+	rm -rf nethack_patched ${UNPATCHED_DIR}
 ###
 
 ###
-.patched_nethack: nethack.patch perm.patch nethack.tar.gz
+.patched_nethack: ${NH_CFG_PATCH} perm.patch nethack.tar.gz
 	rm -rf nethack
 	tar xzf nethack.tar.gz
 	mv NetHack-3.6.7 nethack
-	patch -p0 < nethack.patch
+	patch -p0 < ${NH_CFG_PATCH}
 	patch -p0 < perm.patch
-	touch .patched_nethack
+	touch $@
 clean::
 	rm -rf nethack .patched_nethack
 ###
@@ -140,16 +114,13 @@ DOCKER_RUN = docker run \
 				--user=$(shell id --user):$(shell id --group) \
 				--rm \
 				-v ./ncurses:/ncurses \
-				-v ./zip:/zip \
 				-v ./cosmocc:/cosmocc \
-				-v ./opt:/opt \
 				-v /tmp:/tmp \
 				-e TMPDIR=/tmp
 
-
 ###
 # las dependencias luego del "|" no provocan rebuildeo del target si son la única que cambió
-.configure_ncurses: .docker_buildtime_img | cosmocc/ ncurses/ zip/ opt/
+.configure_ncurses: .docker_buildtime_img cosmocc/ ncurses/
 	$(DOCKER_RUN) \
 	   	-e CFLAGS="-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__" \
 	   	-w /ncurses \
@@ -171,8 +142,10 @@ clean::
 ###
 
 ###
-.build_ncurses: .configure_ncurses | cosmocc/ ncurses/ zip/ opt/
+.build_ncurses: .configure_ncurses | zip/ opt/
 	$(DOCKER_RUN) \
+		-v ./zip:/zip \
+		-v ./opt:/opt \
 	   	-w /ncurses \
 		${BUILDTIME_IMG} \
 			ape make -j8
@@ -184,8 +157,10 @@ clean::
 # TODO: seguramente algunos docker run requieren COSMOPOLITAN_DISABLE_ZIPOS=0
 
 ###
-.install_ncurses: .build_ncurses | cosmocc/ ncurses/ zip/ opt/
+.install_ncurses: .build_ncurses
 	$(DOCKER_RUN) \
+		-v ./zip:/zip \
+		-v ./opt:/opt \
 	   	-w /ncurses \
 		${BUILDTIME_IMG} \
 			ape make INSTALL=install install
@@ -197,6 +172,8 @@ clean::
 ###
 .setup_nethack: .install_ncurses .patched_nethack
 	$(DOCKER_RUN) \
+		-v ./zip:/zip \
+		-v ./opt:/opt \
 		-v ./nethack:/nethack \
 		-w /nethack \
 		${BUILDTIME_IMG} \
@@ -210,6 +187,8 @@ clean::
 .build_nethack: .setup_nethack
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
+		-v ./zip:/zip \
+		-v ./opt:/opt \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j8
@@ -221,18 +200,21 @@ clean::
 	rm -f .build_nethack
 ###
 
+NH_DIR = opt/games/lib/nethackdir
 ###
 .install_nethack: .build_nethack
-	mkdir -p zip/var/nethack
+	mkdir -p zip/cfg
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
+		-v ./zip:/zip \
+		-v ./opt:/opt \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j1 PREFIX=/opt install # -j mayor que 1 falla
 
-	ln -s opt/playground/nethack/nethack nh.zip
-	zip nh.zip opt/playground/nethack/nhdat -j
-	pushd zip; zip ../nh.zip var/nethack/sysconf
+	ln -s ${NH_DIR}/nethack nh.zip
+	zip nh.zip ${NH_DIR}/nhdat -j
+	pushd zip; zip ../nh.zip cfg/sysconf
 	rm -f nh.zip
 	touch $@
 clean::
