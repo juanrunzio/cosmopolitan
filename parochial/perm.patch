@@ -1,15 +1,11 @@
 --- nethack/src/files.c	2024-11-21 20:34:21.595301085 -0300
 +++ ../../NetHack/src/files.c	2024-11-21 20:35:45.300398773 -0300
-@@ -1733,7 +1733,11 @@
+@@ -1733,7 +1733,7 @@
  #endif
      filename = fqname(filename, whichprefix, 0);
  #ifdef USE_FCNTL
 -    lockfd = open(filename, O_RDWR);
-+    if (strstr(filename, HLOCK)) {
-+        lockfd = open(filename, O_RDWR | O_CREAT, 0666);
-+    } else {
-+        lockfd = open(filename, O_RDWR);
-+    }
++    lockfd = open(filename, O_RDWR | O_CREAT, 0666);
      if (lockfd == -1) {
          HUP raw_printf("Cannot open file %s.  Is NetHack installed correctly?",
                         filename);
