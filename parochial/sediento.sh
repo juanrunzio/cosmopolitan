@@ -9,7 +9,7 @@ sed -e 's|^/\* \(#define LINUX\) \*/|\1|' \
 	-e 's|^/\* \(#define TIMED_DELAY\) \*/|\1|' \
 	-i $NH_SRC/include/unixconf.h
 
-sed -e "s|CFLAGS=-g -O -I../include -DNOTPARMDECL|CFLAGS+=-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__ -I../include -I${COSMOS}/include/ncurses -DNOTPARMDECL|" \
+sed -e "s|CFLAGS=-g -O -I../include -DNOTPARMDECL|CFLAGS+=-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__ -I../include -I${COSMOS}/include -I${COSMOS}/include/ncurses -DNOTPARMDECL|" \
 	-e '/^SHELLDIR/ s|/games|/usr/bin|' \
 	-e '/^HACKDIR/a SYSCONFDIR=/zip/cfg'\
 	-e '/-DTIMED_DELAY/d' \

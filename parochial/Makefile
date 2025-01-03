@@ -2,12 +2,26 @@
 COSMOS = /opt/cosmos/x86_64
 BUILDTIME_IMG = 'buildtime:latest'
 
+#	DOCKER_CC = x86_64-unknown-cosmo-cc
+#	DOCKER_CXX = x86_64-unknown-cosmo-c++
+#	DOCKER_AR = x86_64-unknown-cosmo-ar
+#	DOCKER_INSTALL = /cosmocc/bin/x86_64-unknown-cosmo-install
+
+DOCKER_CC = cosmocc
+DOCKER_CXX = cosmoc++
+DOCKER_AR = cosmoar
+DOCKER_INSTALL = /cosmocc/bin/cosmoinstall
+
 .PHONY: help clean deepclean
 
 # La regla deepclean se reserva para cosas que
 # provocarían mucho tráfico de red,
 # mientras que "clean" es para cosas locales.
 # Convención inventada por mi hoy.
+
+BANNER_CMD = banner
+# BANNER_CMD = echo
+
 
 ###
 cosmocc.zip:
@@ -42,6 +56,8 @@ ncurses/: ncurses.tar.gz ncurses-minimal.patch
 	mv ncurses-6.4 ncurses
 clean::
 	rm -rf ncurses/
+###
+
 ###
 .docker_buildtime_img: Dockerfile
 	docker buildx build -t ${BUILDTIME_IMG} .
@@ -94,33 +110,39 @@ clean::
 ###
 
 ###
-zip/:
-	rm -rf $@
-	mkdir $@
-clean::
+.create_zip_opt:
+	rm -rf opt/
+	mkdir -p opt/cosmos/x86_64
 	rm -rf zip/
-###
-
-###
-opt/:
-	rm -rf $@
-	mkdir -p $@/cosmos/x86_64
+	mkdir zip/
+	touch $@
 clean::
 	rm -rf opt/
+	rm -rf zip/
+	rm .create_zip_opt
 ###
+
 
 # TODO: aprender a usar landlock-make en vez de docker
 DOCKER_RUN = docker run \
 				--user=$(shell id --user):$(shell id --group) \
 				--rm \
+				-e CC=$(DOCKER_CC) \
+				-e CXX=$(DOCKER_CXX) \
+				-e AR=$(DOCKER_AR) \
+				-e INSTALL=$(DOCKER_INSTALL) \
 				-v ./ncurses:/ncurses \
 				-v ./cosmocc:/cosmocc \
+				-v ./zip:/zip \
+				-v ./opt:/opt \
 				-v /tmp:/tmp \
 				-e TMPDIR=/tmp
 
 ###
 # las dependencias luego del "|" no provocan rebuildeo del target si son la única que cambió
-.configure_ncurses: .docker_buildtime_img cosmocc/ ncurses/
+.configure_ncurses: .docker_buildtime_img cosmocc/ ncurses/ .create_zip_opt
+	$(BANNER_CMD) $@
+	sleep 1
 	$(DOCKER_RUN) \
 	   	-e CFLAGS="-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__" \
 	   	-w /ncurses \
@@ -129,23 +151,23 @@ DOCKER_RUN = docker run \
 				--without-libtool --without-shared \
 				--without-manpages --without-tests --without-tack \
 				--without-ada --without-cxx --without-cxx-binding \
-				--without-tests --with-termlib --with-ticlib \
+				--with-termlib --with-ticlib \
 				--without-dlsym --without-pcre2 --without-sysmouse \
 				--with-curses-h --disable-stripping --enable-widec \
 				--disable-lib-suffixes \
 				--prefix=${COSMOS} \
 				--sysconfdir=/zip --datarootdir=/zip/usr/share \
-				--host=x86_64-pc-linux-musl --build=x86_64-pc-linux-musl
+				#--host=x86_64-pc-linux-musl --build=x86_64-pc-linux-musl
 	touch $@
 clean::
 	rm -f .configure_ncurses
 ###
 
 ###
-.build_ncurses: .configure_ncurses | zip/ opt/
+.build_ncurses: .configure_ncurses
+	$(BANNER_CMD) $@
+	sleep 1
 	$(DOCKER_RUN) \
-		-v ./zip:/zip \
-		-v ./opt:/opt \
 	   	-w /ncurses \
 		${BUILDTIME_IMG} \
 			ape make -j8
@@ -158,12 +180,12 @@ clean::
 
 ###
 .install_ncurses: .build_ncurses
+	$(BANNER_CMD) $@
+	sleep 1
 	$(DOCKER_RUN) \
-		-v ./zip:/zip \
-		-v ./opt:/opt \
 	   	-w /ncurses \
 		${BUILDTIME_IMG} \
-			ape make INSTALL=install install
+			ape make INSTALL=$(DOCKER_INSTALL) install
 	touch $@
 clean::
 	rm -f .install_ncurses
@@ -171,9 +193,9 @@ clean::
 
 ###
 .setup_nethack: .install_ncurses .patched_nethack
+	$(BANNER_CMD) $@
+	sleep 1
 	$(DOCKER_RUN) \
-		-v ./zip:/zip \
-		-v ./opt:/opt \
 		-v ./nethack:/nethack \
 		-w /nethack \
 		${BUILDTIME_IMG} \
@@ -185,10 +207,10 @@ clean::
 
 ###
 .build_nethack: .setup_nethack
+	$(BANNER_CMD) $@
+	sleep 1
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
-		-v ./zip:/zip \
-		-v ./opt:/opt \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j8
@@ -203,15 +225,14 @@ clean::
 NH_DIR = opt/games/lib/nethackdir
 ###
 .install_nethack: .build_nethack
+	$(BANNER_CMD) $@
+	sleep 1
 	mkdir -p zip/cfg
 	$(DOCKER_RUN) \
 		-v ./nethack:/nethack \
-		-v ./zip:/zip \
-		-v ./opt:/opt \
 		-w /nethack \
 		${BUILDTIME_IMG} \
 			ape make -j1 PREFIX=/opt install # -j mayor que 1 falla
-
 	ln -s ${NH_DIR}/nethack nh.zip
 	zip nh.zip ${NH_DIR}/nhdat -j
 	pushd zip; zip ../nh.zip cfg/sysconf
@@ -221,3 +242,7 @@ clean::
 	rm -f nh.zip
 	rm -f .install_nethack
 	###
+
+grafo:
+	# requiere make2graph, dot y feh
+	make -nd .install_nethack | make2graph | dot -Tpng | feh -
