@@ -59,6 +59,15 @@ clean::
 ###
 
 ###
+bc/: bc.tar.xz
+	rm -rf $@
+	tar xf $<
+	mv bc-6.7.5 bc
+clean::
+	rm -rf bc/
+###
+
+###
 .docker_buildtime_img: Dockerfile
 	docker buildx build -t ${BUILDTIME_IMG} .
 	touch $@
@@ -78,6 +87,13 @@ nethack.tar.gz:
 	wget -qO $@ "https://www.nethack.org/download/3.6.7/nethack-367-src.tgz"
 deepclean::
 	rm -f nethack.tar.gz
+###
+
+###
+bc.tar.xz:
+	wget -qO $@ "https://github.com/gavinhoward/bc/releases/download/6.7.5/bc-6.7.5.tar.xz"
+deepclean::
+	rm -f bc-6.7.5.tar.xz
 ###
 
 ###
@@ -241,7 +257,40 @@ NH_DIR = opt/games/lib/nethackdir
 clean::
 	rm -f nh.zip
 	rm -f .install_nethack
-	###
+###
+
+
+###
+.configure_bc: .docker_buildtime_img cosmocc/ bc/
+	$(BANNER_CMD) $@
+	sleep 1
+	$(DOCKER_RUN) \
+		-e CFLAGS="-Os -D_XOPEN_SOURCE_EXTENDED -D__COSMOPOLITAN__" \
+		-v ./bc:/bc \
+		-w /bc \
+		${BUILDTIME_IMG} \
+			./configure.sh -g \
+
+	touch $@
+clean::
+	rm -f .configure_bc
+###
+
+
+###
+.install_bc: .configure_bc
+	$(BANNER_CMD) $@
+	sleep 1
+	$(DOCKER_RUN) \
+		-v ./bc:/bc \
+		-w /bc \
+		${BUILDTIME_IMG} \
+			ape make -j8
+	touch $@
+clean::
+	rm -f .install_bc
+###
+
 
 grafo:
 	# requiere make2graph, dot y feh
