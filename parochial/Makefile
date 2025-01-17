@@ -143,10 +143,6 @@ clean::
 DOCKER_RUN = docker run \
 				--user=$(shell id --user):$(shell id --group) \
 				--rm \
-				-e CC=$(DOCKER_CC) \
-				-e CXX=$(DOCKER_CXX) \
-				-e AR=$(DOCKER_AR) \
-				-e INSTALL=$(DOCKER_INSTALL) \
 				-v ./ncurses:/ncurses \
 				-v ./cosmocc:/cosmocc \
 				-v ./zip:/zip \
